@@ -79,47 +79,12 @@ export default function InventoryDashboard() {
   const [configKey, setConfigKey] = useState('');
   const [isCustomConfig, setIsCustomConfig] = useState(false);
 
-  // Load config on mount and sync with server
+  // Load config on mount
   useEffect(() => {
-    const syncWithServer = async () => {
-      try {
-        const response = await fetch('/api/supabase-config');
-        if (response.ok) {
-          const serverConfig = await response.json();
-          const localConfig = getSupabaseConfig();
-          
-          const serverUrl = (serverConfig.url || '').trim();
-          const serverKey = (serverConfig.key || '').trim();
-          const localUrl = (localConfig.url || '').trim();
-          const localKey = (localConfig.key || '').trim();
-
-          // If server has credentials and they don't match local storage
-          if (serverUrl && (serverUrl !== localUrl || serverKey !== localKey)) {
-            localStorage.setItem('CUSTOM_SUPABASE_URL', serverUrl);
-            localStorage.setItem('CUSTOM_SUPABASE_ANON_KEY', serverKey);
-            window.location.reload();
-            return;
-          }
-          
-          // If server has NO credentials but local storage is still set as custom
-          if (!serverUrl && localConfig.isCustom) {
-            localStorage.removeItem('CUSTOM_SUPABASE_URL');
-            localStorage.removeItem('CUSTOM_SUPABASE_ANON_KEY');
-            window.location.reload();
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to sync config with server:', err);
-      }
-
-      const cfg = getSupabaseConfig();
-      setConfigUrl(cfg.url);
-      setConfigKey(cfg.key);
-      setIsCustomConfig(cfg.isCustom);
-    };
-
-    syncWithServer();
+    const cfg = getSupabaseConfig();
+    setConfigUrl(cfg.url);
+    setConfigKey(cfg.key);
+    setIsCustomConfig(cfg.isCustom);
   }, []);
 
   const handleSaveConfig = async (e: React.FormEvent) => {
