@@ -361,9 +361,14 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
       {/* ========================================================
           PRINT PREVIEW WRAPPER (HIDDEN ON SCREEN, SHOWN ON PRINT)
           ======================================================== */}
-      <div className="hidden print:block print-styles">
+      <div className="print-styles">
         {/* Print CSS Injection */}
         <style>{`
+          @media screen {
+            .print-styles {
+              display: none !important;
+            }
+          }
           @media print {
             body {
               background: white !important;
