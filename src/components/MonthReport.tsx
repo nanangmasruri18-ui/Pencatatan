@@ -13,6 +13,7 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
   const defaultMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   
   const [selectedMonth, setSelectedMonth] = useState(defaultMonthStr);
+  const [selectedJenis, setSelectedJenis] = useState<'Semua' | 'BHP' | 'Inventaris'>('Semua');
 
   const monthOptions = useMemo(() => {
     const months = new Set<string>();
@@ -49,7 +50,15 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
     // End of selected month date
     const endOfSelectedMonth = new Date(selYear, selMonth, 0, 23, 59, 59, 999);
 
-    return items.map(item => {
+    // Filter items first based on selected jenis_barang
+    const filteredItems = items.filter(item => {
+      const isInventaris = item.jenis_barang === 'Inventaris' || (item.jenis_barang !== 'BHP' && (!!item.tahun_pengadaan || !!item.kondisi));
+      const itemJenis = isInventaris ? 'Inventaris' : 'BHP';
+      if (selectedJenis === 'Semua') return true;
+      return itemJenis === selectedJenis;
+    });
+
+    return filteredItems.map(item => {
       // 1. Calculate historical balance before selected month
       let stockBeforeMonth = item.stok_awal;
       
@@ -103,19 +112,38 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
         status_stok: status,
       };
     });
-  }, [items, transactions, selectedMonth]);
+  }, [items, transactions, selectedMonth, selectedJenis]);
 
-  // All transactions within the selected month
+  // Separate reportData into BHP and Inventaris lists
+  const { bhpReportData, inventarisReportData } = useMemo(() => {
+    const bhp: typeof reportData = [];
+    const inv: typeof reportData = [];
+    
+    reportData.forEach(item => {
+      const isInventaris = item.jenis_barang === 'Inventaris' || (item.jenis_barang !== 'BHP' && (!!item.tahun_pengadaan || !!item.kondisi));
+      if (isInventaris) {
+        inv.push(item);
+      } else {
+        bhp.push(item);
+      }
+    });
+
+    return { bhpReportData: bhp, inventarisReportData: inv };
+  }, [reportData]);
+
+  // All transactions within the selected month for filtered items
   const selectedMonthTransactions = useMemo(() => {
     const [selYear, selMonth] = selectedMonth.split('-').map(Number);
     const start = new Date(selYear, selMonth - 1, 1);
     const end = new Date(selYear, selMonth, 0, 23, 59, 59, 999);
 
+    const allowedItemIds = new Set(reportData.map(d => d.id));
+
     return transactions.filter(t => {
       const tDate = new Date(t.tanggal);
-      return tDate >= start && tDate <= end;
+      return tDate >= start && tDate <= end && allowedItemIds.has(t.barang_id);
     }).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-  }, [transactions, selectedMonth]);
+  }, [transactions, selectedMonth, reportData]);
 
   // Summaries
   const summary = useMemo(() => {
@@ -161,7 +189,7 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
           <select
-            className="flex-1 md:flex-initial min-w-[180px] px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 bg-white focus:outline-none focus:border-indigo-500 text-sm font-semibold cursor-pointer"
+            className="flex-1 md:flex-initial min-w-[150px] px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 bg-white focus:outline-none focus:border-indigo-500 text-sm font-semibold cursor-pointer"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
           >
@@ -172,9 +200,19 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
             ))}
           </select>
 
+          <select
+            className="flex-1 md:flex-initial min-w-[180px] px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 bg-white focus:outline-none focus:border-indigo-500 text-sm font-semibold cursor-pointer"
+            value={selectedJenis}
+            onChange={(e) => setSelectedJenis(e.target.value as any)}
+          >
+            <option value="Semua">Semua Jenis Barang</option>
+            <option value="BHP">Barang Habis Pakai (BHP)</option>
+            <option value="Inventaris">Inventaris (Aset Tetap)</option>
+          </select>
+
           <button
             onClick={handlePrint}
-            className="flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm hover:shadow transition"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm hover:shadow transition whitespace-nowrap cursor-pointer"
           >
             <Printer size={16} />
             Cetak PDF
@@ -261,6 +299,13 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
                     <div className="font-semibold text-slate-800">{data.nama}</div>
                     <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[9px]">
                       <span className="text-slate-400 font-mono">{data.kode}</span>
+                      <span className={`px-1 rounded-[3px] font-bold text-[8px] uppercase ${
+                        (data.jenis_barang === 'Inventaris' || (data.jenis_barang !== 'BHP' && (!!data.tahun_pengadaan || !!data.kondisi)))
+                          ? 'bg-blue-50 text-blue-600 border border-blue-100'
+                          : 'bg-violet-50 text-violet-600 border border-violet-100'
+                      }`}>
+                        {(data.jenis_barang === 'Inventaris' || (data.jenis_barang !== 'BHP' && (!!data.tahun_pengadaan || !!data.kondisi))) ? 'Inventaris' : 'BHP'}
+                      </span>
                       {data.tahun_pengadaan && (
                         <>
                           <span className="text-slate-300">•</span>
@@ -471,8 +516,12 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
 
         {/* Printable Document Layout */}
         <div className="header-print">
-          <h2>Laporan Bulanan Barang Habis Pakai</h2>
-          <p>Sistem Informasi Inventaris BHP · Periode: {formatIndoMonth(selectedMonth)}</p>
+          <h2>
+            {selectedJenis === 'Semua' && 'Laporan Bulanan Inventaris & Barang Habis Pakai'}
+            {selectedJenis === 'BHP' && 'Laporan Bulanan Barang Habis Pakai (BHP)'}
+            {selectedJenis === 'Inventaris' && 'Laporan Bulanan Inventaris (Aset Tetap)'}
+          </h2>
+          <p>Sistem Informasi Inventaris & BHP · Periode: {formatIndoMonth(selectedMonth)}</p>
         </div>
 
         <div className="meta-print flex justify-between">
@@ -506,44 +555,139 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
         </div>
 
         {/* 2. Ringkasan Stok & Penggunaan */}
-        <div className="section-title">2. Laporan Stok Akhir & Mutasi Penggunaan</div>
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: '12%' }}>Kode Barang</th>
-              <th>Nama Barang</th>
-              <th>Kategori</th>
-              <th style={{ textAlign: 'center', width: '10%' }}>Stok Awal</th>
-              <th style={{ textAlign: 'center', width: '10%' }}>Masuk (+)</th>
-              <th style={{ textAlign: 'center', width: '10%' }}>Keluar (-)</th>
-              <th style={{ textAlign: 'center', width: '10%' }}>Stok Akhir</th>
-              <th style={{ width: '10%' }}>Satuan</th>
-              <th style={{ textTransform: 'uppercase', width: '12%', textAlign: 'center' }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reportData.map((data) => (
-              <tr key={data.id}>
-                <td style={{ fontFamily: 'monospace' }}>{data.kode}</td>
-                <td>
-                  <strong>{data.nama}</strong>
-                  <div style={{ fontSize: '9px', color: '#666', marginTop: '2px' }}>
-                    {data.tahun_pengadaan ? `Tahun: ${data.tahun_pengadaan}` : ''}
-                    {data.tahun_pengadaan && data.kondisi ? ' • ' : ''}
-                    {data.kondisi ? `Kondisi: ${data.kondisi}` : ''}
-                  </div>
-                </td>
-                <td>{data.kategori}</td>
-                <td style={{ textAlign: 'center' }}>{data.stok_awal_bulan}</td>
-                <td style={{ textAlign: 'center', color: '#10b981', fontWeight: 'bold' }}>+{data.masuk_bulan_ini}</td>
-                <td style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 'bold' }}>-{data.keluar_bulan_ini}</td>
-                <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{data.stok_akhir_bulan}</td>
-                <td>{data.satuan}</td>
-                <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{data.status_stok}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {selectedJenis === 'Semua' ? (
+          <>
+            <div className="section-title">2. Laporan Stok Akhir & Mutasi Penggunaan</div>
+            
+            <div style={{ fontStyle: 'italic', fontWeight: 'bold', margin: '10px 0 5px 0', fontSize: '11px' }}>2.1 BARANG HABIS PAKAI (BHP)</div>
+            {bhpReportData.length === 0 ? (
+              <p style={{ fontSize: '11px', color: '#666', margin: '5px 0 15px 0' }}>Tidak ada data barang habis pakai.</p>
+            ) : (
+              <table style={{ marginBottom: '20px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '12%' }}>Kode Barang</th>
+                    <th>Nama Barang</th>
+                    <th>Kategori</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Stok Awal</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Masuk (+)</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Keluar (-)</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Stok Akhir</th>
+                    <th style={{ width: '10%' }}>Satuan</th>
+                    <th style={{ textTransform: 'uppercase', width: '12%', textAlign: 'center' }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bhpReportData.map((data) => (
+                    <tr key={data.id}>
+                      <td style={{ fontFamily: 'monospace' }}>{data.kode}</td>
+                      <td><strong>{data.nama}</strong></td>
+                      <td>{data.kategori}</td>
+                      <td style={{ textAlign: 'center' }}>{data.stok_awal_bulan}</td>
+                      <td style={{ textAlign: 'center', color: '#10b981', fontWeight: 'bold' }}>+{data.masuk_bulan_ini}</td>
+                      <td style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 'bold' }}>-{data.keluar_bulan_ini}</td>
+                      <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{data.stok_akhir_bulan}</td>
+                      <td>{data.satuan}</td>
+                      <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{data.status_stok}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            <div style={{ fontStyle: 'italic', fontWeight: 'bold', margin: '15px 0 5px 0', fontSize: '11px' }}>2.2 INVENTARIS (ASET TETAP)</div>
+            {inventarisReportData.length === 0 ? (
+              <p style={{ fontSize: '11px', color: '#666', margin: '5px 0 15px 0' }}>Tidak ada data inventaris.</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: '12%' }}>Kode Barang</th>
+                    <th>Nama Barang</th>
+                    <th>Kategori</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Stok Awal</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Masuk (+)</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Keluar (-)</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Stok Akhir</th>
+                    <th style={{ width: '10%' }}>Satuan</th>
+                    <th style={{ textTransform: 'uppercase', width: '12%', textAlign: 'center' }}>Status / Kondisi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inventarisReportData.map((data) => (
+                    <tr key={data.id}>
+                      <td style={{ fontFamily: 'monospace' }}>{data.kode}</td>
+                      <td>
+                        <strong>{data.nama}</strong>
+                        <div style={{ fontSize: '9px', color: '#666', marginTop: '2px' }}>
+                          {data.tahun_pengadaan ? `Tahun: ${data.tahun_pengadaan}` : ''}
+                          {data.tahun_pengadaan && data.kondisi ? ' • ' : ''}
+                          {data.kondisi ? `Kondisi: ${data.kondisi}` : ''}
+                        </div>
+                      </td>
+                      <td>{data.kategori}</td>
+                      <td style={{ textAlign: 'center' }}>{data.stok_awal_bulan}</td>
+                      <td style={{ textAlign: 'center', color: '#10b981', fontWeight: 'bold' }}>+{data.masuk_bulan_ini}</td>
+                      <td style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 'bold' }}>-{data.keluar_bulan_ini}</td>
+                      <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{data.stok_akhir_bulan}</td>
+                      <td>{data.satuan}</td>
+                      <td style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                        {data.status_stok} {data.kondisi ? `(${data.kondisi})` : ''}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="section-title">
+              2. Laporan Stok Akhir & Mutasi {selectedJenis === 'BHP' ? 'Barang Habis Pakai' : 'Inventaris'}
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: '12%' }}>Kode Barang</th>
+                  <th>Nama Barang</th>
+                  <th>Kategori</th>
+                  <th style={{ textAlign: 'center', width: '10%' }}>Stok Awal</th>
+                  <th style={{ textAlign: 'center', width: '10%' }}>Masuk (+)</th>
+                  <th style={{ textAlign: 'center', width: '10%' }}>Keluar (-)</th>
+                  <th style={{ textAlign: 'center', width: '10%' }}>Stok Akhir</th>
+                  <th style={{ width: '10%' }}>Satuan</th>
+                  <th style={{ textTransform: 'uppercase', width: '12%', textAlign: 'center' }}>
+                    {selectedJenis === 'BHP' ? 'Status' : 'Status / Kondisi'}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.map((data) => (
+                  <tr key={data.id}>
+                    <td style={{ fontFamily: 'monospace' }}>{data.kode}</td>
+                    <td>
+                      <strong>{data.nama}</strong>
+                      <div style={{ fontSize: '9px', color: '#666', marginTop: '2px' }}>
+                        {data.tahun_pengadaan ? `Tahun: ${data.tahun_pengadaan}` : ''}
+                        {data.tahun_pengadaan && data.kondisi ? ' • ' : ''}
+                        {data.kondisi ? `Kondisi: ${data.kondisi}` : ''}
+                      </div>
+                    </td>
+                    <td>{data.kategori}</td>
+                    <td style={{ textAlign: 'center' }}>{data.stok_awal_bulan}</td>
+                    <td style={{ textAlign: 'center', color: '#10b981', fontWeight: 'bold' }}>+{data.masuk_bulan_ini}</td>
+                    <td style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 'bold' }}>-{data.keluar_bulan_ini}</td>
+                    <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{data.stok_akhir_bulan}</td>
+                    <td>{data.satuan}</td>
+                    <td style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                      {data.status_stok} {selectedJenis === 'Inventaris' && data.kondisi ? `(${data.kondisi})` : ''}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
 
         {/* 3. Riwayat Transaksi */}
         <div className="section-title">3. Riwayat Aktivitas Transaksi Masuk/Keluar</div>

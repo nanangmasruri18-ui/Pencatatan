@@ -8,6 +8,7 @@ export interface Barang {
   stok_minimal: number;
   tahun_pengadaan?: number;
   kondisi?: string;
+  jenis_barang?: 'BHP' | 'Inventaris';
   created_at: string;
 }
 

@@ -41,6 +41,7 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
   const [stokMinimal, setStokMinimal] = useState<number>(5);
   const [tahunPengadaan, setTahunPengadaan] = useState<number>(new Date().getFullYear());
   const [kondisi, setKondisi] = useState('Baik');
+  const [jenisBarang, setJenisBarang] = useState<'BHP' | 'Inventaris'>('BHP');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -69,6 +70,7 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
       setStokMinimal(editingItem.stok_minimal);
       setTahunPengadaan(editingItem.tahun_pengadaan || new Date().getFullYear());
       setKondisi(editingItem.kondisi || 'Baik');
+      setJenisBarang(editingItem.jenis_barang || (editingItem.tahun_pengadaan || editingItem.kondisi ? 'Inventaris' : 'BHP'));
     } else {
       setNama('');
       setKategori(KATEGORI_OPTIONS[0]);
@@ -77,6 +79,7 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
       setStokMinimal(5);
       setTahunPengadaan(new Date().getFullYear());
       setKondisi('Baik');
+      setJenisBarang('BHP');
       // Auto-generate a code for new item
       const nextNum = existingItems.length + 1;
       setKode(`BHP-${String(nextNum).padStart(3, '0')}`);
@@ -116,8 +119,9 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
           satuan,
           stok_awal: stokAwal,
           stok_minimal: stokMinimal,
-          tahun_pengadaan: tahunPengadaan,
-          kondisi,
+          tahun_pengadaan: jenisBarang === 'Inventaris' ? tahunPengadaan : undefined,
+          kondisi: jenisBarang === 'Inventaris' ? kondisi : undefined,
+          jenis_barang: jenisBarang,
         });
       } else {
         await onSave({
@@ -127,8 +131,9 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
           satuan,
           stok_awal: stokAwal,
           stok_minimal: stokMinimal,
-          tahun_pengadaan: tahunPengadaan,
-          kondisi,
+          tahun_pengadaan: jenisBarang === 'Inventaris' ? tahunPengadaan : undefined,
+          kondisi: jenisBarang === 'Inventaris' ? kondisi : undefined,
+          jenis_barang: jenisBarang,
         });
       }
       onCancel();
@@ -151,6 +156,36 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
             {errorMessage}
           </div>
         )}
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
+            Jenis Barang
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setJenisBarang('BHP')}
+              className={`py-2.5 px-4 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                jenisBarang === 'BHP'
+                  ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span>📦 Barang Habis Pakai (BHP)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setJenisBarang('Inventaris')}
+              className={`py-2.5 px-4 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                jenisBarang === 'Inventaris'
+                  ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span>📋 Inventaris (Aset Tetap)</span>
+            </button>
+          </div>
+        </div>
 
         <div>
           <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
@@ -260,38 +295,40 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
-              Tahun Pengadaan
-            </label>
-            <input
-              type="number"
-              min="1900"
-              max={new Date().getFullYear() + 10}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 focus:outline-none focus:border-indigo-500 text-sm"
-              value={tahunPengadaan}
-              onChange={(e) => setTahunPengadaan(parseInt(e.target.value) || new Date().getFullYear())}
-              disabled={isSubmitting}
-            />
-          </div>
+        {jenisBarang === 'Inventaris' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
+                Tahun Pengadaan
+              </label>
+              <input
+                type="number"
+                min="1900"
+                max={new Date().getFullYear() + 10}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 focus:outline-none focus:border-indigo-500 text-sm"
+                value={tahunPengadaan}
+                onChange={(e) => setTahunPengadaan(parseInt(e.target.value) || new Date().getFullYear())}
+                disabled={isSubmitting}
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
-              Kondisi Barang
-            </label>
-            <select
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 bg-white focus:outline-none focus:border-indigo-500 text-sm cursor-pointer"
-              value={kondisi}
-              onChange={(e) => setKondisi(e.target.value)}
-              disabled={isSubmitting}
-            >
-              <option value="Baik">Baik (Berfungsi Normal)</option>
-              <option value="Rusak Ringan">Rusak Ringan</option>
-              <option value="Rusak Berat">Rusak Berat</option>
-            </select>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
+                Kondisi Barang
+              </label>
+              <select
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 bg-white focus:outline-none focus:border-indigo-500 text-sm cursor-pointer"
+                value={kondisi}
+                onChange={(e) => setKondisi(e.target.value)}
+                disabled={isSubmitting}
+              >
+                <option value="Baik">Baik (Berfungsi Normal)</option>
+                <option value="Rusak Ringan">Rusak Ringan</option>
+                <option value="Rusak Berat">Rusak Berat</option>
+              </select>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-50">
           <button
