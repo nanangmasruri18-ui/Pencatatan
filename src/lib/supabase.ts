@@ -257,7 +257,7 @@ export async function deleteTransaksi(id: string): Promise<boolean> {
 // LOCAL STORAGE BACKEND UTILS
 // ==========================================
 
-function getLocalBarang(): Barang[] {
+export function getLocalBarang(): Barang[] {
   const raw = localStorage.getItem(LOCAL_BARANG_KEY);
   if (!raw) {
     // Initial sample data so the user gets an immediately satisfying experience
@@ -340,7 +340,7 @@ function deleteLocalBarang(id: string): boolean {
   return true;
 }
 
-function getLocalTransaksi(): Transaksi[] {
+export function getLocalTransaksi(): Transaksi[] {
   const raw = localStorage.getItem(LOCAL_TRANSAKSI_KEY);
   if (!raw) {
     // Initial sample transactions that match the sample stock

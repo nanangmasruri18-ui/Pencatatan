@@ -11,7 +11,9 @@ import {
   isUsingSupabase,
   syncLocalToSupabase,
   SUPABASE_SQL_SCRIPT,
-  getSupabaseErrorState
+  getSupabaseErrorState,
+  getLocalBarang,
+  getLocalTransaksi
 } from '../lib/supabase';
 import ItemForm from './ItemForm';
 import TransactionForm from './TransactionForm';
@@ -35,7 +37,11 @@ import {
   Trash2,
   X,
   FileSpreadsheet,
-  Settings
+  Settings,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+  AlertCircle
 } from 'lucide-react';
 
 export default function InventoryDashboard() {
@@ -50,10 +56,14 @@ export default function InventoryDashboard() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   
   // Filters State
-  const [activeTab, setActiveTab] = useState<'stok' | 'transaksi' | 'laporan'>('stok');
+  const [activeTab, setActiveTab] = useState<'stok' | 'transaksi' | 'laporan' | 'sinkronisasi'>('stok');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'Semua' | 'Aman' | 'Menipis' | 'Habis'>('Semua');
+
+  // Local storage stats for Sync Dashboard
+  const [localBarangCount, setLocalBarangCount] = useState(0);
+  const [localTransaksiCount, setLocalTransaksiCount] = useState(0);
 
   // Supabase Sync UI feedback
   const [isSyncing, setIsSyncing] = useState(false);
@@ -69,6 +79,14 @@ export default function InventoryDashboard() {
       const fetchedTrans = await fetchTransaksi();
       setItems(fetchedItems);
       setTransactions(fetchedTrans);
+      
+      // Update local storage stats
+      try {
+        setLocalBarangCount(getLocalBarang().length);
+        setLocalTransaksiCount(getLocalTransaksi().length);
+      } catch (e) {
+        console.warn('Error reading local storage metrics:', e);
+      }
       
       const errState = getSupabaseErrorState();
       setSupabaseTableError(errState.hasError);
@@ -528,6 +546,23 @@ export default function InventoryDashboard() {
             <FileSpreadsheet size={15} />
             Laporan Akhir Bulan
           </button>
+          <button
+            onClick={() => setActiveTab('sinkronisasi')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition ${
+              activeTab === 'sinkronisasi'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+            }`}
+          >
+            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+            <span>Sinkronisasi & Status</span>
+            {!isUsingSupabase && (
+              <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse ml-1" title="Offline (Penyimpanan Lokal)" />
+            )}
+            {isUsingSupabase && supabaseTableError && (
+              <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse ml-1" title="Kesalahan Tabel Database" />
+            )}
+          </button>
         </div>
 
         {/* ========================================================
@@ -901,6 +936,291 @@ export default function InventoryDashboard() {
             ======================================================== */}
         {activeTab === 'laporan' && (
           <MonthReport items={items} transactions={transactions} />
+        )}
+
+        {/* ========================================================
+            TAB 4: SINKRONISASI & DIAGNOSIS KONEKSI
+            ======================================================== */}
+        {activeTab === 'sinkronisasi' && (
+          <div className="no-print space-y-6">
+            
+            {/* Status Header Overview */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-2xl ${
+                    isUsingSupabase 
+                      ? 'bg-emerald-50 text-emerald-600' 
+                      : 'bg-amber-50 text-amber-600'
+                  }`}>
+                    {isUsingSupabase ? <Wifi size={24} /> : <WifiOff size={24} />}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-800">Status Sinkronisasi & Koneksi Cloud</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {isUsingSupabase 
+                        ? 'Aplikasi terhubung ke database cloud Supabase.' 
+                        : 'Aplikasi berjalan dalam Mode Offline (Penyimpanan Lokal Browser).'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Visual Pill Indicator */}
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                    isUsingSupabase && !supabaseTableError
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : isUsingSupabase && supabaseTableError
+                      ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                      : 'bg-amber-100 text-amber-800 border border-amber-200'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${
+                      isUsingSupabase && !supabaseTableError
+                        ? 'bg-emerald-500 animate-pulse'
+                        : isUsingSupabase && supabaseTableError
+                        ? 'bg-rose-500 animate-pulse'
+                        : 'bg-amber-500 animate-pulse'
+                    }`} />
+                    {isUsingSupabase && !supabaseTableError && 'Koneksi Cloud Aktif'}
+                    {isUsingSupabase && supabaseTableError && 'Kesalahan Tabel'}
+                    {!isUsingSupabase && 'Penyimpanan Lokal'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Diagnostic Panel: INDIKATOR MASALAH TIDAK TERKONEKSI */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              
+              <div className="lg:col-span-2 space-y-6">
+                
+                {/* Indikator Masalah Box */}
+                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="p-5 border-b border-slate-50 bg-slate-50 flex items-center gap-2">
+                    <AlertCircle className="text-indigo-600" size={18} />
+                    <h3 className="text-sm font-bold text-slate-800">Indikator & Diagnosis Masalah Koneksi</h3>
+                  </div>
+                  
+                  <div className="p-6 space-y-4 text-xs text-slate-600 leading-relaxed">
+                    
+                    {/* CASE 1: NOT CONNECTED (Using Local Storage) */}
+                    {!isUsingSupabase && (
+                      <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-5 space-y-3">
+                        <div className="flex items-center gap-2 text-amber-800 font-bold">
+                          <AlertTriangle size={18} />
+                          <span>Peringatan: Database Cloud Supabase Belum Terkoneksi</span>
+                        </div>
+                        <p>
+                          Aplikasi saat ini <strong>tidak terhubung ke database cloud Supabase</strong>. Data Anda disimpan sementara secara aman di dalam <code>localStorage</code> browser web Anda. Jika Anda membuka aplikasi dari perangkat atau browser lain, data ini tidak akan tersinkronisasi secara otomatis.
+                        </p>
+                        
+                        <div className="bg-white border border-amber-100 rounded-lg p-4 space-y-2 text-[11px]">
+                          <p className="font-bold text-amber-900">Langkah Penanganan agar Terkoneksi:</p>
+                          <ol className="list-decimal pl-4 space-y-1.5 text-slate-700">
+                            <li>
+                              Buka akun Anda di <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline text-indigo-600 font-semibold hover:text-indigo-800">Supabase.com</a> dan buat sebuah proyek baru.
+                            </li>
+                            <li>
+                              Masuk ke menu <strong>Project Settings &gt; API</strong> di dashboard proyek Supabase Anda.
+                            </li>
+                            <li>
+                              Konfigurasikan Environment Variables pada platform hosting Anda (seperti <strong>Vercel</strong>, Netlify, atau Cloud Run) dengan menambahkan kedua variabel berikut:
+                              <div className="mt-2 bg-slate-900 text-slate-200 p-2.5 rounded font-mono text-[10px] space-y-1 select-all">
+                                <div>VITE_SUPABASE_URL="https://[id-proyek-anda].supabase.co"</div>
+                                <div>VITE_SUPABASE_ANON_KEY="[kunci-anon-anda]"</div>
+                              </div>
+                            </li>
+                            <li>
+                              Deploy ulang aplikasi Anda di Vercel/platform hosting agar konfigurasi baru diterapkan dengan sempurna.
+                            </li>
+                          </ol>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CASE 2: CONNECTED BUT TABLE IS MISSING */}
+                    {isUsingSupabase && supabaseTableError && (
+                      <div className="bg-rose-50 border border-rose-200 rounded-xl p-5 space-y-3">
+                        <div className="flex items-center gap-2 text-rose-800 font-bold">
+                          <AlertTriangle size={18} />
+                          <span>Peringatan: Struktur Tabel di Supabase Belum Siap</span>
+                        </div>
+                        <p>
+                          Kredensial Supabase terdeteksi dan terhubung, tetapi sistem <strong>gagal menemukan tabel 'barang' atau 'transaksi'</strong> di database Anda. Anda harus membuat tabel tersebut di database Supabase Anda agar penyimpanan cloud dapat dipergunakan dengan sempurna.
+                        </p>
+                        
+                        <div className="bg-white border border-rose-100 rounded-lg p-4 space-y-2 text-[11px]">
+                          <p className="font-bold text-rose-900">Langkah Penanganan agar Berfungsi Sempurna:</p>
+                          <ol className="list-decimal pl-4 space-y-1.5 text-slate-700">
+                            <li>
+                              Buka proyek database Supabase Anda di web browser.
+                            </li>
+                            <li>
+                              Pilih menu <strong>SQL Editor</strong> di panel sebelah kiri dashboard Supabase.
+                            </li>
+                            <li>
+                              Klik tombol <strong>New Query</strong> untuk membuat query SQL baru.
+                            </li>
+                            <li>
+                              Salin script SQL DDL yang disediakan pada bagian kanan halaman ini, lalu tempelkan (paste) ke SQL Editor Supabase.
+                            </li>
+                            <li>
+                              Klik tombol <strong>Run</strong> di kanan bawah SQL Editor untuk membuat tabel dan kebijakan keamanannya. Setelah itu, muat ulang halaman aplikasi ini.
+                            </li>
+                          </ol>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CASE 3: FULLY CONNECTED & STABLE */}
+                    {isUsingSupabase && !supabaseTableError && (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 space-y-3">
+                        <div className="flex items-center gap-2 text-emerald-800 font-bold">
+                          <Check size={18} className="text-emerald-600" />
+                          <span>Koneksi Supabase Sangat Baik & Berfungsi Penuh</span>
+                        </div>
+                        <p>
+                          Koneksi database aman! Semua data barang dan mutasi yang Anda catat akan tersimpan secara instan di cloud database Supabase. Anda dapat mengakses data inventaris Anda kapan saja, di mana saja, dari perangkat apa pun.
+                        </p>
+                        <div className="text-[11px] text-slate-500 bg-white border border-emerald-100 p-3 rounded-lg">
+                          <p className="font-bold text-emerald-950">Detail Sambungan:</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-1.5 font-mono text-[10px]">
+                            <div>Host: <span className="text-indigo-600">supabase.co</span></div>
+                            <div>Keamanan: <span className="text-emerald-600">Row Level Security (RLS) Aktif</span></div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Comparison Stats Section */}
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <h4 className="font-bold text-slate-800 mb-3 text-xs">Perbandingan Sinkronisasi Data Saat Ini:</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        
+                        {/* Local Storage Stats */}
+                        <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                          <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Penyimpanan Lokal (Browser)</div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-extrabold text-slate-700">{localBarangCount}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">Jenis Barang</span>
+                          </div>
+                          <div className="flex items-baseline gap-2 mt-1">
+                            <span className="text-lg font-bold text-slate-500">{localTransaksiCount}</span>
+                            <span className="text-[10px] text-slate-400 font-medium">Riwayat Transaksi</span>
+                          </div>
+                        </div>
+
+                        {/* Cloud DB Stats */}
+                        <div className="bg-indigo-50/40 border border-indigo-100 rounded-xl p-4">
+                          <div className="text-[10px] uppercase font-bold tracking-wider text-indigo-400 mb-1">Cloud DB (Terbaca Saat Ini)</div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-extrabold text-indigo-700">
+                              {isUsingSupabase && !supabaseTableError ? items.length : '0'}
+                            </span>
+                            <span className="text-[10px] text-indigo-400 font-medium">Jenis Barang</span>
+                          </div>
+                          <div className="flex items-baseline gap-2 mt-1">
+                            <span className="text-lg font-bold text-indigo-500">
+                              {isUsingSupabase && !supabaseTableError ? transactions.length : '0'}
+                            </span>
+                            <span className="text-[10px] text-indigo-400 font-medium">Riwayat Transaksi</span>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* Sync Action Block */}
+                    {isUsingSupabase && (
+                      <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-150 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div>
+                          <h4 className="font-bold text-slate-800 text-xs">Ingin mengunggah data lokal Anda ke Supabase?</h4>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Seluruh data yang tercatat lokal akan disalin dan digabung ke cloud database Anda.</p>
+                        </div>
+                        <div className="shrink-0 w-full sm:w-auto">
+                          <button
+                            onClick={handleSyncToSupabase}
+                            disabled={isSyncing}
+                            className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 disabled:bg-slate-300 disabled:cursor-not-allowed"
+                          >
+                            {isSyncing ? (
+                              <>
+                                <RefreshCw size={14} className="animate-spin" />
+                                <span>Menyinkronkan...</span>
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw size={14} />
+                                <span>Sinkronkan Sekarang</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {syncResult && (
+                      <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-[11px] text-emerald-800 font-medium flex items-center gap-2">
+                        <Check size={16} className="text-emerald-600 shrink-0" />
+                        <span>
+                          <strong>Berhasil menyinkronkan data!</strong> {syncResult.b} barang baru dan {syncResult.t} riwayat transaksi baru telah disalin ke Cloud Database Supabase.
+                        </span>
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right Column: SQL Script DDL */}
+              <div className="space-y-6">
+                
+                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-slate-50 flex items-center justify-between bg-slate-50">
+                    <span className="text-xs font-bold text-slate-800">Skema SQL Database</span>
+                    <button
+                      onClick={copySqlToClipboard}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-bold bg-white px-2 py-1 rounded border border-slate-200 shadow-xs transition"
+                    >
+                      {copiedSql ? (
+                        <>
+                          <Check size={12} className="text-emerald-500" />
+                          <span>Tersalin</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={12} />
+                          <span>Salin Script</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  <div className="p-4 bg-slate-900 text-slate-300 font-mono text-[9px] overflow-x-auto max-h-[350px] leading-relaxed">
+                    <pre className="whitespace-pre-wrap">{SUPABASE_SQL_SCRIPT}</pre>
+                  </div>
+                  
+                  <div className="p-4 border-t border-slate-100 text-[10px] text-slate-400 bg-slate-50">
+                    *Gunakan script di atas di panel <strong>SQL Editor</strong> proyek Supabase Anda untuk mempersiapkan tabel-tabel secara otomatis.
+                  </div>
+                </div>
+
+                {/* Connection Quick Guide */}
+                <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-3">
+                  <h4 className="text-xs font-bold text-slate-800">Panduan Sinkronisasi Hibrida</h4>
+                  <ul className="text-[10px] text-slate-500 space-y-2 list-disc pl-4 leading-relaxed">
+                    <li>Aplikasi secara cerdas mendeteksi jika koneksi Supabase terputus dan beralih ke local storage agar proses pencatatan Anda tidak terganggu.</li>
+                    <li>Status konektivitas diperiksa secara berkala setiap kali aplikasi memuat data inventaris.</li>
+                    <li>Sistem pelaporan PDF akhir bulan tetap berfungsi normal baik saat menggunakan Supabase cloud maupun penyimpanan lokal.</li>
+                  </ul>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
         )}
 
       </main>
