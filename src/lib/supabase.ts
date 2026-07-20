@@ -1,13 +1,14 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Barang, Transaksi } from '../types';
 
-let supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
+// Load credentials, preferring localStorage overrides for deployment flexibilty (e.g. Vercel)
+let supabaseUrl = localStorage.getItem('CUSTOM_SUPABASE_URL') || (import.meta as any).env.VITE_SUPABASE_URL || '';
 if (supabaseUrl.endsWith('/rest/v1/')) {
   supabaseUrl = supabaseUrl.replace('/rest/v1/', '');
 } else if (supabaseUrl.endsWith('/rest/v1')) {
   supabaseUrl = supabaseUrl.replace('/rest/v1', '');
 }
-const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseAnonKey = localStorage.getItem('CUSTOM_SUPABASE_ANON_KEY') || (import.meta as any).env.VITE_SUPABASE_ANON_KEY || '';
 
 export let supabase: SupabaseClient | null = null;
 export let isUsingSupabase = false;
@@ -29,6 +30,38 @@ if (supabaseUrl && supabaseAnonKey && supabaseUrl !== 'MY_SUPABASE_URL' && supab
   }
 } else {
   console.log('Running in Local Storage Mode. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to connect to Supabase.');
+}
+
+export function saveSupabaseConfig(url: string, key: string) {
+  if (url) {
+    let cleanUrl = url.trim();
+    if (cleanUrl.endsWith('/rest/v1/')) {
+      cleanUrl = cleanUrl.replace('/rest/v1/', '');
+    } else if (cleanUrl.endsWith('/rest/v1')) {
+      cleanUrl = cleanUrl.replace('/rest/v1', '');
+    }
+    localStorage.setItem('CUSTOM_SUPABASE_URL', cleanUrl);
+  } else {
+    localStorage.removeItem('CUSTOM_SUPABASE_URL');
+  }
+
+  if (key) {
+    localStorage.setItem('CUSTOM_SUPABASE_ANON_KEY', key.trim());
+  } else {
+    localStorage.removeItem('CUSTOM_SUPABASE_ANON_KEY');
+  }
+}
+
+export function clearSupabaseConfig() {
+  localStorage.removeItem('CUSTOM_SUPABASE_URL');
+  localStorage.removeItem('CUSTOM_SUPABASE_ANON_KEY');
+}
+
+export function getSupabaseConfig() {
+  const url = localStorage.getItem('CUSTOM_SUPABASE_URL') || (import.meta as any).env.VITE_SUPABASE_URL || '';
+  const key = localStorage.getItem('CUSTOM_SUPABASE_ANON_KEY') || (import.meta as any).env.VITE_SUPABASE_ANON_KEY || '';
+  const isCustom = !!localStorage.getItem('CUSTOM_SUPABASE_URL') || !!localStorage.getItem('CUSTOM_SUPABASE_ANON_KEY');
+  return { url, key, isCustom };
 }
 
 // Local storage keys

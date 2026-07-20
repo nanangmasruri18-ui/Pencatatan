@@ -13,7 +13,10 @@ import {
   SUPABASE_SQL_SCRIPT,
   getSupabaseErrorState,
   getLocalBarang,
-  getLocalTransaksi
+  getLocalTransaksi,
+  saveSupabaseConfig,
+  clearSupabaseConfig,
+  getSupabaseConfig
 } from '../lib/supabase';
 import ItemForm from './ItemForm';
 import TransactionForm from './TransactionForm';
@@ -70,6 +73,37 @@ export default function InventoryDashboard() {
   const [syncResult, setSyncResult] = useState<{ b: number; t: number } | null>(null);
   const [copiedSql, setCopiedSql] = useState(false);
   const [supabaseTableError, setSupabaseTableError] = useState(false);
+
+  // Connection Configuration state
+  const [configUrl, setConfigUrl] = useState('');
+  const [configKey, setConfigKey] = useState('');
+  const [isCustomConfig, setIsCustomConfig] = useState(false);
+
+  // Load config on mount
+  useEffect(() => {
+    const cfg = getSupabaseConfig();
+    setConfigUrl(cfg.url);
+    setConfigKey(cfg.key);
+    setIsCustomConfig(cfg.isCustom);
+  }, []);
+
+  const handleSaveConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!configUrl.trim() || !configKey.trim()) {
+      alert('Harap isi URL dan Anon Key dengan benar!');
+      return;
+    }
+    saveSupabaseConfig(configUrl, configKey);
+    alert('Konfigurasi Supabase berhasil disimpan! Aplikasi akan memuat ulang untuk terhubung.');
+    window.location.reload();
+  };
+
+  const handleResetConfig = () => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus kredensial kustom dan kembali ke pengaturan default?')) {
+      clearSupabaseConfig();
+      window.location.reload();
+    }
+  };
 
   // Load all initial data from data tier
   const loadData = async () => {
@@ -993,6 +1027,73 @@ export default function InventoryDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               
               <div className="lg:col-span-2 space-y-6">
+
+                {/* Form Input Kredensial Supabase */}
+                <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="p-5 border-b border-slate-50 bg-slate-50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Settings className="text-indigo-600" size={18} />
+                      <h3 className="text-sm font-bold text-slate-800">Konfigurasi Koneksi Supabase (Online Mode)</h3>
+                    </div>
+                    {isCustomConfig && (
+                      <button
+                        onClick={handleResetConfig}
+                        className="text-[11px] text-rose-600 hover:text-rose-800 font-bold underline cursor-pointer"
+                      >
+                        Reset ke Default
+                      </button>
+                    )}
+                  </div>
+                  
+                  <form onSubmit={handleSaveConfig} className="p-5 space-y-4">
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Jika Anda men-deploy aplikasi ini di <strong>Vercel</strong>, kredensial di file <code>.env</code> lokal Anda tidak akan terbawa secara otomatis. Anda dapat memasukkan kredensial Supabase Anda di bawah ini untuk menghubungkan aplikasi browser Anda secara instan ke database online Anda.
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Supabase Project URL
+                        </label>
+                        <input
+                          type="text"
+                          value={configUrl}
+                          onChange={(e) => setConfigUrl(e.target.value)}
+                          placeholder="https://xxxxx.supabase.co"
+                          className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition outline-none font-mono"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Supabase Anon Key
+                        </label>
+                        <input
+                          type="password"
+                          value={configKey}
+                          onChange={(e) => setConfigKey(e.target.value)}
+                          placeholder="eyJhbGciOiJIUzI1NiIsIn..."
+                          className="w-full text-xs px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition outline-none font-mono"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-2">
+                      <span className="text-[10px] text-slate-400">
+                        *Kredensial disimpan dengan aman di penyimpanan lokal browser Anda.
+                      </span>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm hover:shadow transition flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Wifi size={14} />
+                        <span>Simpan & Hubungkan</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
                 
                 {/* Indikator Masalah Box */}
                 <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
