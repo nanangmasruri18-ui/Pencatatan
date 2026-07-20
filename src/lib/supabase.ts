@@ -32,29 +32,39 @@ if (supabaseUrl && supabaseAnonKey && supabaseUrl !== 'MY_SUPABASE_URL' && supab
   console.log('Running in Local Storage Mode. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to connect to Supabase.');
 }
 
-export function saveSupabaseConfig(url: string, key: string) {
-  if (url) {
-    let cleanUrl = url.trim();
-    if (cleanUrl.endsWith('/rest/v1/')) {
-      cleanUrl = cleanUrl.replace('/rest/v1/', '');
-    } else if (cleanUrl.endsWith('/rest/v1')) {
-      cleanUrl = cleanUrl.replace('/rest/v1', '');
-    }
-    localStorage.setItem('CUSTOM_SUPABASE_URL', cleanUrl);
-  } else {
-    localStorage.removeItem('CUSTOM_SUPABASE_URL');
+export async function saveSupabaseConfig(url: string, key: string) {
+  let cleanUrl = url.trim();
+  if (cleanUrl.endsWith('/rest/v1/')) {
+    cleanUrl = cleanUrl.replace('/rest/v1/', '');
+  } else if (cleanUrl.endsWith('/rest/v1')) {
+    cleanUrl = cleanUrl.replace('/rest/v1', '');
   }
 
-  if (key) {
-    localStorage.setItem('CUSTOM_SUPABASE_ANON_KEY', key.trim());
-  } else {
-    localStorage.removeItem('CUSTOM_SUPABASE_ANON_KEY');
+  localStorage.setItem('CUSTOM_SUPABASE_URL', cleanUrl);
+  localStorage.setItem('CUSTOM_SUPABASE_ANON_KEY', key.trim());
+
+  try {
+    await fetch('/api/supabase-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: cleanUrl, key: key.trim() }),
+    });
+  } catch (error) {
+    console.error('Failed to save config to server:', error);
   }
 }
 
-export function clearSupabaseConfig() {
+export async function clearSupabaseConfig() {
   localStorage.removeItem('CUSTOM_SUPABASE_URL');
   localStorage.removeItem('CUSTOM_SUPABASE_ANON_KEY');
+
+  try {
+    await fetch('/api/supabase-config', {
+      method: 'DELETE',
+    });
+  } catch (error) {
+    console.error('Failed to clear config on server:', error);
+  }
 }
 
 export function getSupabaseConfig() {
