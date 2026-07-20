@@ -1,0 +1,6 @@
+{
+  "name": "Pencatatan Barang Habis Pakai",
+  "description": "Aplikasi sederhana pencatatan barang habis pakai, barang masuk/keluar, stok, dan laporan bulanan dengan database Supabase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
