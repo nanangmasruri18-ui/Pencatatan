@@ -1,7 +1,12 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Barang, Transaksi } from '../types';
 
-const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
+let supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || '';
+if (supabaseUrl.endsWith('/rest/v1/')) {
+  supabaseUrl = supabaseUrl.replace('/rest/v1/', '');
+} else if (supabaseUrl.endsWith('/rest/v1')) {
+  supabaseUrl = supabaseUrl.replace('/rest/v1', '');
+}
 const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY || '';
 
 export let supabase: SupabaseClient | null = null;
