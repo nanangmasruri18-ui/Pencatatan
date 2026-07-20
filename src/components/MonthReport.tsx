@@ -146,7 +146,8 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
 
   return (
     <div className="space-y-6">
-      {/* Month Selector & Action Panel */}
+      <div className="no-print space-y-6">
+        {/* Month Selector & Action Panel */}
       <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
@@ -354,6 +355,7 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
             </table>
           </div>
         )}
+      </div>
       </div>
 
       {/* ========================================================

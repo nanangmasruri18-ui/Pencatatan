@@ -287,11 +287,11 @@ export default function InventoryDashboard() {
       </header>
 
       {/* Main Container */}
-      <main className="no-print max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
         {/* Inline Modals/Slideouts for Forms */}
         {showItemForm && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="no-print fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden relative">
               <button
                 onClick={() => setShowItemForm(false)}
@@ -313,7 +313,7 @@ export default function InventoryDashboard() {
         )}
 
         {showTransactionForm && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="no-print fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden relative">
               <button
                 onClick={() => setShowTransactionForm(false)}
@@ -335,7 +335,7 @@ export default function InventoryDashboard() {
 
         {/* Supabase SQL DDL & Connection Instructions Modal */}
         {showSettingsModal && (
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="no-print fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
               <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <div className="flex items-center gap-2">
@@ -438,7 +438,7 @@ export default function InventoryDashboard() {
 
         {/* Supabase Schema Missing Warning */}
         {supabaseTableError && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+          <div className="no-print bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
                 <Database size={20} />
@@ -461,7 +461,7 @@ export default function InventoryDashboard() {
 
         {/* Alert Section for Critical items */}
         {criticalItems.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-sm">
+          <div className="no-print bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-amber-100 text-amber-700 rounded-xl">
                 <AlertTriangle size={20} />
@@ -494,7 +494,7 @@ export default function InventoryDashboard() {
         )}
 
         {/* Dashboard Tabs Control Navigation */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-1.5 shadow-sm flex">
+        <div className="no-print bg-white border border-slate-100 rounded-2xl p-1.5 shadow-sm flex">
           <button
             onClick={() => setActiveTab('stok')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition ${
@@ -534,7 +534,7 @@ export default function InventoryDashboard() {
             TAB 1: PEMANTAUAN STOK (MONITORING STOCK GRID)
             ======================================================== */}
         {activeTab === 'stok' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <div className="no-print grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             
             {/* Left side: Main Items List Table with Filter Panel (Grid col 2) */}
             <div className="lg:col-span-2 space-y-6">
@@ -809,7 +809,7 @@ export default function InventoryDashboard() {
             TAB 2: ALUR MASUK/KELUAR (TRANSACTION MANAGER)
             ======================================================== */}
         {activeTab === 'transaksi' && (
-          <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
+          <div className="no-print bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-slate-50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">Riwayat Transaksi Mutasi Barang</h3>
