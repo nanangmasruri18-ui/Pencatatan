@@ -13,7 +13,7 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
   const defaultMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   
   const [selectedMonth, setSelectedMonth] = useState(defaultMonthStr);
-  const [selectedJenis, setSelectedJenis] = useState<'Semua' | 'BHP' | 'Inventaris'>('Semua');
+  const [selectedJenis, setSelectedJenis] = useState<'Semua' | 'BHP' | 'Inventaris' | 'Buku_Aset'>('Semua');
 
   const monthOptions = useMemo(() => {
     const months = new Set<string>();
@@ -52,8 +52,15 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
 
     // Filter items first based on selected jenis_barang
     const filteredItems = items.filter(item => {
-      const isInventaris = item.jenis_barang === 'Inventaris' || (item.jenis_barang !== 'BHP' && (!!item.tahun_pengadaan || !!item.kondisi));
-      const itemJenis = isInventaris ? 'Inventaris' : 'BHP';
+      let itemJenis: 'BHP' | 'Inventaris' | 'Buku_Aset' = 'BHP';
+      if (item.jenis_barang === 'Buku_Aset') {
+        itemJenis = 'Buku_Aset';
+      } else if (item.jenis_barang === 'Inventaris' || (item.jenis_barang !== 'BHP' && (!!item.tahun_pengadaan || !!item.kondisi))) {
+        itemJenis = 'Inventaris';
+      } else {
+        itemJenis = 'BHP';
+      }
+      
       if (selectedJenis === 'Semua') return true;
       return itemJenis === selectedJenis;
     });
@@ -114,21 +121,23 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
     });
   }, [items, transactions, selectedMonth, selectedJenis]);
 
-  // Separate reportData into BHP and Inventaris lists
-  const { bhpReportData, inventarisReportData } = useMemo(() => {
+  // Separate reportData into BHP, Inventaris, and Buku_Aset lists
+  const { bhpReportData, inventarisReportData, bukuReportData } = useMemo(() => {
     const bhp: typeof reportData = [];
     const inv: typeof reportData = [];
+    const bks: typeof reportData = [];
     
     reportData.forEach(item => {
-      const isInventaris = item.jenis_barang === 'Inventaris' || (item.jenis_barang !== 'BHP' && (!!item.tahun_pengadaan || !!item.kondisi));
-      if (isInventaris) {
+      if (item.jenis_barang === 'Buku_Aset') {
+        bks.push(item);
+      } else if (item.jenis_barang === 'Inventaris' || (item.jenis_barang !== 'BHP' && (!!item.tahun_pengadaan || !!item.kondisi))) {
         inv.push(item);
       } else {
         bhp.push(item);
       }
     });
 
-    return { bhpReportData: bhp, inventarisReportData: inv };
+    return { bhpReportData: bhp, inventarisReportData: inv, bukuReportData: bks };
   }, [reportData]);
 
   // All transactions within the selected month for filtered items
@@ -208,6 +217,7 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
             <option value="Semua">Semua Jenis Barang</option>
             <option value="BHP">Barang Habis Pakai (BHP)</option>
             <option value="Inventaris">Inventaris (Aset Tetap)</option>
+            <option value="Buku_Aset">Buku & Aset Mudah Rusak</option>
           </select>
 
           <button
@@ -300,11 +310,13 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
                     <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[9px]">
                       <span className="text-slate-400 font-mono">{data.kode}</span>
                       <span className={`px-1 rounded-[3px] font-bold text-[8px] uppercase ${
-                        (data.jenis_barang === 'Inventaris' || (data.jenis_barang !== 'BHP' && (!!data.tahun_pengadaan || !!data.kondisi)))
+                        data.jenis_barang === 'Buku_Aset'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : (data.jenis_barang === 'Inventaris' || (data.jenis_barang !== 'BHP' && (!!data.tahun_pengadaan || !!data.kondisi)))
                           ? 'bg-blue-50 text-blue-600 border border-blue-100'
                           : 'bg-violet-50 text-violet-600 border border-violet-100'
                       }`}>
-                        {(data.jenis_barang === 'Inventaris' || (data.jenis_barang !== 'BHP' && (!!data.tahun_pengadaan || !!data.kondisi))) ? 'Inventaris' : 'BHP'}
+                        {data.jenis_barang === 'Buku_Aset' ? 'Buku / Aset' : (data.jenis_barang === 'Inventaris' || (data.jenis_barang !== 'BHP' && (!!data.tahun_pengadaan || !!data.kondisi))) ? 'Inventaris' : 'BHP'}
                       </span>
                       {data.tahun_pengadaan && (
                         <>
@@ -520,6 +532,7 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
             {selectedJenis === 'Semua' && 'Laporan Bulanan Inventaris & Barang Habis Pakai'}
             {selectedJenis === 'BHP' && 'Laporan Bulanan Barang Habis Pakai (BHP)'}
             {selectedJenis === 'Inventaris' && 'Laporan Bulanan Inventaris (Aset Tetap)'}
+            {selectedJenis === 'Buku_Aset' && 'Laporan Bulanan Buku & Aset Mudah Rusak'}
           </h2>
           <p>Sistem Informasi Inventaris & BHP · Periode: {formatIndoMonth(selectedMonth)}</p>
         </div>
@@ -639,11 +652,56 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
                 </tbody>
               </table>
             )}
+
+            <div style={{ fontStyle: 'italic', fontWeight: 'bold', margin: '15px 0 5px 0', fontSize: '11px' }}>2.3 BUKU & ASET MUDAH RUSAK</div>
+            {bukuReportData.length === 0 ? (
+              <p style={{ fontSize: '11px', color: '#666', margin: '5px 0 15px 0' }}>Tidak ada data buku atau aset mudah rusak.</p>
+            ) : (
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: '12%' }}>Kode Barang</th>
+                    <th>Nama Barang</th>
+                    <th>Kategori</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Stok Awal</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Masuk (+)</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Keluar (-)</th>
+                    <th style={{ textAlign: 'center', width: '10%' }}>Stok Akhir</th>
+                    <th style={{ width: '10%' }}>Satuan</th>
+                    <th style={{ textTransform: 'uppercase', width: '12%', textAlign: 'center' }}>Status / Kondisi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bukuReportData.map((data) => (
+                    <tr key={data.id}>
+                      <td style={{ fontFamily: 'monospace' }}>{data.kode}</td>
+                      <td>
+                        <strong>{data.nama}</strong>
+                        <div style={{ fontSize: '9px', color: '#666', marginTop: '2px' }}>
+                          {data.tahun_pengadaan ? `Tahun: ${data.tahun_pengadaan}` : ''}
+                          {data.tahun_pengadaan && data.kondisi ? ' • ' : ''}
+                          {data.kondisi ? `Kondisi: ${data.kondisi}` : ''}
+                        </div>
+                      </td>
+                      <td>{data.kategori}</td>
+                      <td style={{ textAlign: 'center' }}>{data.stok_awal_bulan}</td>
+                      <td style={{ textAlign: 'center', color: '#10b981', fontWeight: 'bold' }}>+{data.masuk_bulan_ini}</td>
+                      <td style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 'bold' }}>-{data.keluar_bulan_ini}</td>
+                      <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{data.stok_akhir_bulan}</td>
+                      <td>{data.satuan}</td>
+                      <td style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                        {data.status_stok} {data.kondisi ? `(${data.kondisi})` : ''}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </>
         ) : (
           <>
             <div className="section-title">
-              2. Laporan Stok Akhir & Mutasi {selectedJenis === 'BHP' ? 'Barang Habis Pakai' : 'Inventaris'}
+              2. Laporan Stok Akhir & Mutasi {selectedJenis === 'BHP' ? 'Barang Habis Pakai (BHP)' : selectedJenis === 'Buku_Aset' ? 'Buku & Aset Mudah Rusak' : 'Inventaris (Aset Tetap)'}
             </div>
             <table>
               <thead>
@@ -680,7 +738,7 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
                     <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{data.stok_akhir_bulan}</td>
                     <td>{data.satuan}</td>
                     <td style={{ textAlign: 'center', fontWeight: 'bold' }}>
-                      {data.status_stok} {selectedJenis === 'Inventaris' && data.kondisi ? `(${data.kondisi})` : ''}
+                      {data.status_stok} {selectedJenis !== 'BHP' && data.kondisi ? `(${data.kondisi})` : ''}
                     </td>
                   </tr>
                 ))}

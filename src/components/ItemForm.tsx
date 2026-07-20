@@ -41,22 +41,32 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
   const [stokMinimal, setStokMinimal] = useState<number>(5);
   const [tahunPengadaan, setTahunPengadaan] = useState<number>(new Date().getFullYear());
   const [kondisi, setKondisi] = useState('Baik');
-  const [jenisBarang, setJenisBarang] = useState<'BHP' | 'Inventaris'>('BHP');
+  const [jenisBarang, setJenisBarang] = useState<'BHP' | 'Inventaris' | 'Buku_Aset'>('BHP');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   // Auto-generate code helper
-  const generateCode = () => {
-    const prefix = 'BHP';
+  const generateCode = (currentJenis?: 'BHP' | 'Inventaris' | 'Buku_Aset') => {
+    const activeJenis = currentJenis || jenisBarang;
+    const prefix = activeJenis === 'Inventaris' ? 'INV' : activeJenis === 'Buku_Aset' ? 'BKS' : 'BHP';
     const randomNum = Math.floor(100 + Math.random() * 900); // 100-999
     const generated = `${prefix}-${randomNum}`;
     
     // Check uniqueness
     const isTaken = existingItems.some(item => item.kode === generated);
     if (isTaken) {
-      generateCode();
+      generateCode(activeJenis);
     } else {
       setKode(generated);
+    }
+  };
+
+  const handleJenisChange = (newJenis: 'BHP' | 'Inventaris' | 'Buku_Aset') => {
+    setJenisBarang(newJenis);
+    if (!editingItem) {
+      const prefix = newJenis === 'Inventaris' ? 'INV' : newJenis === 'Buku_Aset' ? 'BKS' : 'BHP';
+      const randomNum = Math.floor(100 + Math.random() * 900);
+      setKode(`${prefix}-${randomNum}`);
     }
   };
 
@@ -119,8 +129,8 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
           satuan,
           stok_awal: stokAwal,
           stok_minimal: stokMinimal,
-          tahun_pengadaan: jenisBarang === 'Inventaris' ? tahunPengadaan : undefined,
-          kondisi: jenisBarang === 'Inventaris' ? kondisi : undefined,
+          tahun_pengadaan: jenisBarang !== 'BHP' ? tahunPengadaan : undefined,
+          kondisi: jenisBarang !== 'BHP' ? kondisi : undefined,
           jenis_barang: jenisBarang,
         });
       } else {
@@ -131,8 +141,8 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
           satuan,
           stok_awal: stokAwal,
           stok_minimal: stokMinimal,
-          tahun_pengadaan: jenisBarang === 'Inventaris' ? tahunPengadaan : undefined,
-          kondisi: jenisBarang === 'Inventaris' ? kondisi : undefined,
+          tahun_pengadaan: jenisBarang !== 'BHP' ? tahunPengadaan : undefined,
+          kondisi: jenisBarang !== 'BHP' ? kondisi : undefined,
           jenis_barang: jenisBarang,
         });
       }
@@ -161,21 +171,21 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
           <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
             Jenis Barang
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <button
               type="button"
-              onClick={() => setJenisBarang('BHP')}
+              onClick={() => handleJenisChange('BHP')}
               className={`py-2.5 px-4 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 jenisBarang === 'BHP'
                   ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm'
                   : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}
             >
-              <span>📦 Barang Habis Pakai (BHP)</span>
+              <span>📦 BHP (Habis Pakai)</span>
             </button>
             <button
               type="button"
-              onClick={() => setJenisBarang('Inventaris')}
+              onClick={() => handleJenisChange('Inventaris')}
               className={`py-2.5 px-4 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 jenisBarang === 'Inventaris'
                   ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm'
@@ -183,6 +193,17 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
               }`}
             >
               <span>📋 Inventaris (Aset Tetap)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleJenisChange('Buku_Aset')}
+              className={`py-2.5 px-4 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                jenisBarang === 'Buku_Aset'
+                  ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm'
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span>📚 Buku & Aset Mudah Rusak</span>
             </button>
           </div>
         </div>
@@ -295,7 +316,7 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
           </div>
         </div>
 
-        {jenisBarang === 'Inventaris' && (
+        {jenisBarang !== 'BHP' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">

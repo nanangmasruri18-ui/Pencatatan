@@ -707,6 +707,15 @@ export default function InventoryDashboard() {
                                 <div className="font-bold text-slate-800">{item.nama}</div>
                                 <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[10px]">
                                   <span className="text-slate-400 font-mono">{item.kode}</span>
+                                  <span className={`px-1 rounded text-[8px] font-extrabold uppercase ${
+                                    item.jenis_barang === 'Buku_Aset'
+                                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                      : (item.jenis_barang === 'Inventaris' || (item.jenis_barang !== 'BHP' && (!!item.tahun_pengadaan || !!item.kondisi)))
+                                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                      : 'bg-violet-50 text-violet-700 border border-violet-200'
+                                  }`}>
+                                    {item.jenis_barang === 'Buku_Aset' ? 'Buku & Aset' : (item.jenis_barang === 'Inventaris' || (item.jenis_barang !== 'BHP' && (!!item.tahun_pengadaan || !!item.kondisi))) ? 'Inventaris' : 'BHP'}
+                                  </span>
                                   {item.tahun_pengadaan && (
                                     <>
                                       <span className="text-slate-300">•</span>
