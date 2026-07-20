@@ -705,7 +705,29 @@ export default function InventoryDashboard() {
                               {/* Name & Code */}
                               <td className="py-3.5 px-4">
                                 <div className="font-bold text-slate-800">{item.nama}</div>
-                                <div className="text-[10px] text-slate-400 font-mono mt-0.5">{item.kode}</div>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[10px]">
+                                  <span className="text-slate-400 font-mono">{item.kode}</span>
+                                  {item.tahun_pengadaan && (
+                                    <>
+                                      <span className="text-slate-300">•</span>
+                                      <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium">Thn: {item.tahun_pengadaan}</span>
+                                    </>
+                                  )}
+                                  {item.kondisi && (
+                                    <>
+                                      <span className="text-slate-300">•</span>
+                                      <span className={`px-1.5 py-0.5 rounded font-bold ${
+                                        item.kondisi === 'Baik'
+                                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                          : item.kondisi === 'Rusak Ringan'
+                                          ? 'bg-amber-50 text-amber-600 border border-amber-100'
+                                          : 'bg-rose-50 text-rose-600 border border-rose-100'
+                                      }`}>
+                                        {item.kondisi}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
                               </td>
 
                               {/* Category */}

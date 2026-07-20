@@ -39,6 +39,8 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
   const [satuan, setSatuan] = useState(SATUAN_OPTIONS[0]);
   const [stokAwal, setStokAwal] = useState<number>(0);
   const [stokMinimal, setStokMinimal] = useState<number>(5);
+  const [tahunPengadaan, setTahunPengadaan] = useState<number>(new Date().getFullYear());
+  const [kondisi, setKondisi] = useState('Baik');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -65,12 +67,16 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
       setSatuan(editingItem.satuan);
       setStokAwal(editingItem.stok_awal);
       setStokMinimal(editingItem.stok_minimal);
+      setTahunPengadaan(editingItem.tahun_pengadaan || new Date().getFullYear());
+      setKondisi(editingItem.kondisi || 'Baik');
     } else {
       setNama('');
       setKategori(KATEGORI_OPTIONS[0]);
       setSatuan(SATUAN_OPTIONS[0]);
       setStokAwal(0);
       setStokMinimal(5);
+      setTahunPengadaan(new Date().getFullYear());
+      setKondisi('Baik');
       // Auto-generate a code for new item
       const nextNum = existingItems.length + 1;
       setKode(`BHP-${String(nextNum).padStart(3, '0')}`);
@@ -110,6 +116,8 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
           satuan,
           stok_awal: stokAwal,
           stok_minimal: stokMinimal,
+          tahun_pengadaan: tahunPengadaan,
+          kondisi,
         });
       } else {
         await onSave({
@@ -119,6 +127,8 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
           satuan,
           stok_awal: stokAwal,
           stok_minimal: stokMinimal,
+          tahun_pengadaan: tahunPengadaan,
+          kondisi,
         });
       }
       onCancel();
@@ -222,7 +232,7 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
 
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
-              Stok Awal
+              Jumlah / Stok Awal
             </label>
             <input
               type="number"
@@ -247,6 +257,39 @@ export default function ItemForm({ onSave, onUpdate, editingItem, onCancel, exis
               onChange={(e) => setStokMinimal(Math.max(0, parseInt(e.target.value) || 0))}
               disabled={isSubmitting}
             />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
+              Tahun Pengadaan
+            </label>
+            <input
+              type="number"
+              min="1900"
+              max={new Date().getFullYear() + 10}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 focus:outline-none focus:border-indigo-500 text-sm"
+              value={tahunPengadaan}
+              onChange={(e) => setTahunPengadaan(parseInt(e.target.value) || new Date().getFullYear())}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
+              Kondisi Barang
+            </label>
+            <select
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 bg-white focus:outline-none focus:border-indigo-500 text-sm cursor-pointer"
+              value={kondisi}
+              onChange={(e) => setKondisi(e.target.value)}
+              disabled={isSubmitting}
+            >
+              <option value="Baik">Baik (Berfungsi Normal)</option>
+              <option value="Rusak Ringan">Rusak Ringan</option>
+              <option value="Rusak Berat">Rusak Berat</option>
+            </select>
           </div>
         </div>
 

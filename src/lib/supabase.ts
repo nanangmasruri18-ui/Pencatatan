@@ -80,6 +80,8 @@ CREATE TABLE IF NOT EXISTS barang (
   satuan TEXT NOT NULL,
   stok_awal INTEGER DEFAULT 0,
   stok_minimal INTEGER DEFAULT 0,
+  tahun_pengadaan INTEGER,
+  kondisi TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -489,6 +491,8 @@ export async function syncLocalToSupabase(): Promise<{ barangSynced: number; tra
           satuan: b.satuan,
           stok_awal: b.stok_awal,
           stok_minimal: b.stok_minimal,
+          tahun_pengadaan: b.tahun_pengadaan,
+          kondisi: b.kondisi,
         }])
         .select()
         .single();

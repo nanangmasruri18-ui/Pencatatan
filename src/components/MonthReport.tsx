@@ -259,7 +259,29 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
                 <tr key={data.id} className="hover:bg-slate-50/50 transition">
                   <td className="py-3 px-5">
                     <div className="font-semibold text-slate-800">{data.nama}</div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">{data.kode}</div>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[9px]">
+                      <span className="text-slate-400 font-mono">{data.kode}</span>
+                      {data.tahun_pengadaan && (
+                        <>
+                          <span className="text-slate-300">•</span>
+                          <span className="text-slate-500">Thn: {data.tahun_pengadaan}</span>
+                        </>
+                      )}
+                      {data.kondisi && (
+                        <>
+                          <span className="text-slate-300">•</span>
+                          <span className={`font-bold ${
+                            data.kondisi === 'Baik'
+                              ? 'text-emerald-600'
+                              : data.kondisi === 'Rusak Ringan'
+                              ? 'text-amber-600'
+                              : 'text-rose-600'
+                          }`}>
+                            {data.kondisi}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-slate-500">{data.kategori}</td>
                   <td className="py-3 px-4 text-center font-medium text-slate-500">{data.stok_awal_bulan}</td>
@@ -503,7 +525,14 @@ export default function MonthReport({ items, transactions }: MonthReportProps) {
             {reportData.map((data) => (
               <tr key={data.id}>
                 <td style={{ fontFamily: 'monospace' }}>{data.kode}</td>
-                <td><strong>{data.nama}</strong></td>
+                <td>
+                  <strong>{data.nama}</strong>
+                  <div style={{ fontSize: '9px', color: '#666', marginTop: '2px' }}>
+                    {data.tahun_pengadaan ? `Tahun: ${data.tahun_pengadaan}` : ''}
+                    {data.tahun_pengadaan && data.kondisi ? ' • ' : ''}
+                    {data.kondisi ? `Kondisi: ${data.kondisi}` : ''}
+                  </div>
+                </td>
                 <td>{data.kategori}</td>
                 <td style={{ textAlign: 'center' }}>{data.stok_awal_bulan}</td>
                 <td style={{ textAlign: 'center', color: '#10b981', fontWeight: 'bold' }}>+{data.masuk_bulan_ini}</td>

@@ -6,6 +6,8 @@ export interface Barang {
   satuan: string;
   stok_awal: number;
   stok_minimal: number;
+  tahun_pengadaan?: number;
+  kondisi?: string;
   created_at: string;
 }
 
