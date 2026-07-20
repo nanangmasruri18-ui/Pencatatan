@@ -4,6 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Google AI Studio App</title>
+    <script>
+      // Suppress benign Vite HMR websocket connection errors from showing up in the app UI
+      window.addEventListener('unhandledrejection', (event) => {
+        const reason = event.reason;
+        if (reason) {
+          const msg = (reason.message || reason.toString() || '').toLowerCase();
+          const stack = (reason.stack || '').toLowerCase();
+          if (msg.includes('websocket') || msg.includes('vite') || stack.includes('vite') || stack.includes('websocket')) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        }
+      });
+      window.addEventListener('error', (event) => {
+        const msg = (event.message || '').toLowerCase();
+        if (msg.includes('websocket') || msg.includes('vite')) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }, true);
+    </script>
   </head>
   <body>
     <div id="root"></div>
